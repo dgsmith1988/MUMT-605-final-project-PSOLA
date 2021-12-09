@@ -1,0 +1,812 @@
+*11/25/2021*
+Hmm... not sure what to do here... okay... so this is a variantion of the 
+SOLA algorithm... so I'll take a look at this... so this assumes that the input
+sound has a pitch... makes sense... otherwise you wouldn't be able to use pitch
+as a method of controling things here or you couldn't use the information to 
+inform the decisions of the algorithms... makes some sense... so this is a time
+stretching algorithm it seems... or it could be used for pitch shifting as well...
+so the time variation of the pitch period should be stretched accordingly... hmmm...
+okay... if ~t = alpha*t describes the time-scaling function which maps the time
+from the input signal to the time of the output signal... hmm... okay... so
+either time is comrpessed or expanded depending on alpha... so then the local
+pitch period ~P(~t) will be defined by ~P(~t) = ~P(alpha*t) = P(t)... so the
+local pitch period of the output signal should be the same as the input? What is
+the pitch period? The pitch period is presumably the inverse of the fundamental
+frequency... it would be one period of the waveform which defines the sound we
+are attempting to time stretch... hm... seems like this would be interesting
+regardless... so lets see here... i mean okay... so lets define the pitch period
+as that... okay... i mean so then if we change the time scale we would technically
+want to preserve that...  we shouldn't alter the waveform in anyway which might
+adjust the pitch at all... i mean it would be hard to not have a psychacoustic
+element to this as pitch is a psychacoustic phenomena... but there is also more
+the defintion of time stretching which we were dealing with from the start...
+we want to change the rate at which the acoustic events are perceived without
+altering the acoutsic events themselves... interesting... time stretching algorithms
+shouldn't affect pitch or frequency attributes... we are looking at changing the
+perceived timing attributes... interesting... a lot of this has to do with perception...
+
+hmm... okay... so now back to this concept of the pitch period... hmm... so lets
+see here... hmm... i believe that's what this is saying... we should preserve the
+pitch period as much as we can... or we shouldn't be altering things in the spectrum
+at all... so we could change the time scaling factor as well... hmm... but for
+now lets keep it constant and then add that in later...
+
+so the algorithm consists of two parts here... first we analyzethe signal and 
+segment the sound... then we synthesize a time-streched version by overlapping
+and adding the time segments which were extracted... hmm... interesting...
+i mean this makes sense... 
+
+hmm... so what to do here... it seems like getting the fundamental frequency
+estimation up and working first would be the thing to do... for that i think
+the YIN algorithm will be appropriate... i can work with that to implmement the
+algorithm at first and then double back and do the autocorrelation method to
+compare the results...
+
+*11/30/2021*
+Hmm.... so lets get a version of the YIN algorithm up an running...
+So lets see here... how does this work? So this is another method to determine
+periodicity... the core idea behind it is to take the difference between a 
+signal and a delayed version of the signal... at the period the function will
+be minimized as the values will cancel each other out... and we are using the
+absolute value here... interesting... okay... this is the average magnitude
+difference function... hmm... well i mean strictly speaking it would be the 
+difference magnitude function... but sum up the differences and then average
+them over the length/number of samples... hmm... okay... hmm... so i see how
+there are different dips there... interesting... so lets see... how does it
+go negative howwever? both the functions of summation have a range with a minimum
+bound of zero... so then there's this other guy... i believe this is the original
+paper i read... so De Cheveigne defined the difference function as a sum of
+squares... interesting... i mean i could experiment with both of them to see
+which one provides a more reliable estimate... hmm... so what would this one
+do? well the squaring would minimize smaller values and then increase the difference
+for larger values... interesting... i mean it would be a bit hmm.... i mean
+it seems like it might help emphasize the areas where the signals are aligned
+more correctly... interesting...
+
+so the ACF and difference function are both sensitive to amplitude changes of the
+time signal... hmmm... ahh... so if the pitch remains the same but the amplitude
+changes this could affect things... interesting... an increasing amplitude leads
+to higher peaks at later lags for the ACF and lower dips for the differnce function
+respectively... hmm... I mean I can see that as the different between the samples
+would be increasing... interesting... perhaps it is worth exploring the ACF for
+a bit to try all three of them... hmm... not sure...
+
+so lets see... to combat this we apply the cumulative normalization to average
+the current lag value with the previous ones... hmm... so okay... lets see 
+here... this gives us the normalized mean difference function here.... so we
+get 1 from it if l = 0... makes sense a bit... or does it... if l is zero then
+we're subtracting the signal from itself so then wouldn't that be zero? hmm...
+lets see... and then if l is not zero we take the d_t(l) and divide it by the
+average of all the l previous values... interesting... not sure what this would
+necessarily do however...
+
+so the NMDF starts at 1 and drops below 1 only where the current lag value is
+below the average of all previous lags... this allows one to define a threshold...
+a local minimum d'_t(l) has to fall below in order to consider it as a valid pitch 
+candidate... hmm... so presumably the way this works is we take a frame and then
+perform the analysis we have here and then move a hop size and analyze another
+frame... hmm... i mean seems like the frame is fundaemtnaylly limiting things
+here... or how does this work? i mean the estimate would be for that frame?
+
+hmm... this section on time domain pitch extraction seems like it would be useful...
+so it helps define what the concept of the pitch period is... hmm... okay...
+so then lets see... it says that only integer-valued pitch lags can be detected...
+hmm... hmm... i mean i suppose that makes sense... we are dealing with determining
+the fundamental frequency by lagging a signal by integer value samples... i mean
+this issue of fundamental frequency detection seems to be inherently involved
+or it's fairly complex in and of itself... the YIN algorithm should be sufficient...
+lets see.. okay... so then this creates a frequency resoltuion in terms of what
+we can detect based on the f0 and Fs... hmm...okay... so lets see here... so we
+are assuming the case for the sake of argument where ~M = M + 0.5... where M is
+the detected integer pitch lag... so the detected fundamental frequency is 
+this... instead of the exact pitch... hmm... there might be something lost in
+translation here... i mean it seems as is ~M is the non-integer value... M
+refers to the number of samples in one period... ahh.. hmm... so what if f0
+is not an integer multiple of Fs... ahh... that's entirely possible... i've been
+going by the assumption that M is an integer... so in this formula it isn't 
+necessarily an integer however it could be... so I see now how it represents the
+true value... ahh... i can see what is going on here... interesting... ahh...
+so this represents the actual value... and then we offset this by .5 just for 
+an example... ahh... and ~M has to be an integer based on how the algorithm works
+or how the time domain algorithms work in terms of being lag based with the
+fundamental discretization in the time-domain of a sample... interesting...
+ahh... okay... so then the detected f0 is this instead... where as the exact
+pitch uses M instead of ~M... okay... so then lets see here... now we get the
+error... ahh... so this is the ratio of the actual pitch to the detected pitch
+based on the integer values... interesting... hmm... okay... so what's this
+say... the error is 1 plus the extra part from the integer constraints multiplied
+by the ratio of the fundamental frequnecy to the sampling frequnecy... ahh...
+so in this expression fs is likely going to be much larger than f0 so this will 
+be comparatively smaller... hmm... okay... so lets see here next... what is done?
+we take the expression earlier and then so whats the half tone factor? so we 
+need to determine what this error would be in musical terms... okay... hmm...
+so lets see... hmm... okay... well i can ignore the musical terms for the moment
+and just look at things from the standpoint of Hz...
+
+hmm... lets see here... so then we plot the error but hmm... i mean this .5 
+aspect seems to be somewhat arbitary... ahh but this is more the worst case 
+scenario...? my guess is we could be off by a maxmimum of half a sample as 
+otherwise we would take the other value... hmm... although the half-tone aspect
+is important as it determines the perceptual part... hmm... so then lets see
+here... i mean i presume i can recreate these graphs... hmm... okay... i mean
+that's not too bad... but its hard to necessarily interpret... but this will
+ultimately affect the performance of the PSOLA alogorithm... i mean i can implement
+these things now... although the YIN algorithm attempts to compensate for this
+via interpolation i believe... i'll need to take a look at how it operates later...
+
+so if we plot the error here then lets see... so for 1k the error is only
+20% of a half tone... so that's apparently pretty accurate? i mean damn... well
+i'd need to test that one myself to see what it says/how it works... i mean we
+get close to being an entire half-tone off when the fundamental frequency gets
+up to 5k... interesting... okay... interesting... okay... so then we get into
+a basic description of how these time-domain F0 algorithms work...
+
+1) Segmentation of the input is performed by making it into overlapping blocks
+and pre-processing each block (potentially low-pass filtering it)... interesting...
+so it is what i had anticipated... interesting... minus the FFT aspect... but
+there is the analysis hop size as well as the analysis window length... interetsing...
+
+2) Basic pitch estimation algorithm is applied to the pre-processed block...
+hmm... oaky... makes sense...
+
+3) Post-processing for an error correction of the pitch estimates and smoothing
+of pitch trajectories... interesting... i mean that makes sense... since we
+understand how the algorithm works we could process the output to compensate
+accordingly and then smooth the pitch trajectories... i mean that makes sense...
+you would want to smooth them in order to make sure they accurately reflect 
+the reality of what's going on... or more accurately model what the song is
+doing... i mean there's a very slim chance there's gonig to be massive discontinuties...
+hmm... well i mean that depends on the music... but presumably you could tell
+where these things occur... you would expect some sort of ADSR envelope to result
+and it wouldn't happen abruptly if you're dealing with normal physical instruments...
+
+okay... so it would be worth going through the auto-correlation aspect here...
+
+the auto-correlation seequency can also be used to detect the pitch period of
+a signal segment... hmm... so first we present different defintions of the
+auto-correlation seequences.... hmm... so here is using one block... okay...
+so r_xx(m) (or the autocorrelation of a sequence) hmm... so m changes the delay
+or lag amount and then multiply the signals together and sum them up over the
+length of the window... so this is the raw signals... but then we can also define
+this using windowed signals... interesting... so the window starts at the beginning
+of the frame and is applied to the delayed signal as well... ahh... so i can 
+see that here...
+
+ahh... so this is with one block... and then we have a windowed block... interesting...
+so then we could also take this method or definition which seems to not take
+the frame based nature into account... hmm... interesting... i mean that's an
+important thing to point out here... like you can only introduce so many lags
+based on the length of the analysis window used... hmm... so you need to figure
+something out for how to handle that... or is that what's going on here? well
+i mean if you used the entire window length and dragged/pulled that through or
+across the other one okay... interesting... so lets see here... i mean you can
+just introduce zeros as that's going to modify the signal and not be reflective
+of what's really going on... interesting... so perhaps two frames are necessary
+or defining the frame length needs to take this into account...
+
+so in these different definitions there is no noramlization based on the block
+length... interesting...
+
+so lets see here... we have figure 9.14... this shows three different
+auto correlation seqeunces for a signal "la"... hmm... okay.... so looking at
+the sequence here we get the maximum lag at 160... makes sense... and then
+there's a local max which looks like it corresponds to the same spacing...
+yeah... interesting... so normally we expect the first maximum to be the
+pitch lag... ahh... but it depends a lot... hmm... i mean i can see that here...
+there must be harmonics within the signal which create these other local maxima
+so then lets see here... hmm... so lets see then... so in general the 
+auto-correlation function has maxima at the pitch lag M and at it's multiples...
+makes sense to me... the same correlation occurs if comparing the signal with
+the same signal delayed by mtultiples of the pitch period... makes sense...
+although i mean that assumes steady state conditions... depending on the method
+of pitch production then you might naturally see a decay which would make sense
+as to why the values are gradually decreasing here... hmm... although there
+could be other reasons as it doens't look like that's the case here... interesting...
+hmm... so lets see... here since the third harmonic is more dominant than the
+fundamental frequnecy we get the first maximum in the auto-correlation at M/3...
+or 1/3 the pitch period... which would make some sense... the harmonic would be
+an integer multiple of the fudnamental frequnecy so it's period would be inversely
+scaled by it's harmonic number... so then conversely there can be a higher peak
+int he auto-correlation after the true pitch period... hmm... i'm not sure i
+necessarily see that at the moment but i can keep going on here.... so if we
+look at the auto-correlation of the block here we gradually see it decreasing...
+interesting... i mean that makes sense... presumably zeros are being introduced
+or something... but it is decreasing at a more rapid rate... then then suppose
+we have the windowed blocks... these decrease even faster... interesting...
+i mean that makes some sense as the window is going to affect the ability to 
+recognize the signal here... hmm... or it's going to change the values calculated...
+hmm... okay... i feel like i've got enough to keep going here... hmm.... okay...
+so lets see here...
+
+interesting... so lets see here... hmm... okay... so then we do this low-pass
+filtered example... interesting... so lets see... the cliped signal creates
+another pattern we can play with here in terms of working with the autocorrelation
+sequence... interesting... so lets take another look at these statements regarding
+the YIN algorithm... hmm... so lets see here... i mean yes... i can see this
+better now... it would be similar to the ACF in a way but the pitch is detected
+where the dips occur, not the maxmimum values... hmm... how is this advantageous?
+i'm not sure... 
+
+okay... i can go to the original paper if need be... seems like it could be
+interesting... so hmm... i mean there's another paper which is referred to
+from 74... hmm... lets go with the Yin as it's more recent... okay... so lets
+see here... 
+
+so lets see here... it starts at 1... and that is with a lag of zero... then
+what we do is take the sum of the difference squared  of the signal with a lagged
+version (over the course of the frame) and then divide it by the average 
+squared difference for the all the preivous lag values... interesting... so i'll
+need to keep track of these things... or keep track of all the previous values
+to have it possible to calculate these things here... ahh... interesting... i
+mean i'll be able to play with this to see how it works... but it allows for
+developing a threshold here... makes some sense i suppose... so it only drops 
+below 1 when the cumulative average tof the previous lag values is greater than
+the current lag value... hmm... what does that indicate? it indicates a decrease
+in the strenght of the correlation or matching of the signal... hmm... so this
+allows us to define a minimum in terms of what the value needs to attain in
+order to have a potential pitch candidate... i mean the minimum is zero based
+on how the function is defined... hmm... so this seems to be a way which allows
+us to mitigate for the case where certain harmonics are stronger...
+
+so lets see here... so then we can increase the frequency resolution by using
+parabolic interpolation based on the output of the YIN algorithm in order to
+help mitigate the issue where there's a non-integer value of samples for the 
+pitch period... hmm... interesting... hmm... time for some lunch... it might be
+worth recreating these graphs with his algorithm before implementing my own
+version...
+
+hmm... okay... so lets take a stab at recreating his graph here... hmm... so
+lets see here... how do I recreate this plot? i'll need to change the time axis...
+also the y-axis seems to be quite different as well... hm... so lets see here...
+
+hmm... okay... so there's a pitch estimate for every frame here... interesting...
+so what to do then...? how to plot this? so lets see... i mean we would then
+plot this against what? the frame number (or index) multiplied by the sampling
+period... hmm... so this YIN algorithm is computational expensive it seems....
+or i wonder how this could be done in real-time...
+
+hmm... so what's happening here? i mean it would be ncie to be able to interact
+with the waveform with the YIN plot to see where the discontinutites were
+happening... hmm... i mean technically this isn't what i want here... i mean
+i presume the 0 parts are for unvoiced sections? yeah... okay... so then what
+do i want to do here? i mean I don't want to plot all the same data like it's
+connected like this... that is misleading... i would like to plot each section
+of non-zero data... interesting... hmm... i mean this gets me closer but it
+isn't necessarily what i want... so perhaps tuning the function a bit more would
+be beneficial... i mean i'm going to have to fundamentally process the otuput
+of the function in this manner when looking for the pitch marks... interesting...
+
+hmm... i mean so definitely that output there isn't correct... if that's not there
+then it seems as if the alogorithm reproduces the results from the book more
+precisely/exactly than i had anticipated... perhaps it is the hop size which
+affects this? i'm not sure... lets see what Alain says... so it could be something
+which is part of the structure of the singing... hmm... lets see here... well i
+could always take a look at the frame in general... let me plot the FFT of this...
+
+hmm... although this output is occuring right one of the unvoiced segments...
+what would cause this affect? i might have to go through the algorithm line by
+line... hmm... he doesn't seem to have the parabolic interpolation here either...
+i mean this is a lot more complicated than i had anticipated...
+
+hmm... so what did we do here? i mean it seems a bit odd in terms of what he's
+done... there's also no windowing occuring... interesting... will that be what
+happens in the PSOLA algorithm? Hmm...okay... so lets see here... I mean lets
+take a look at this... so we increase k by 1... then we take a frame... i mean
+this is just to implement the segementation or selecting the different frames...
+hmm... hmm... so lets see here... i mean he goes through this and gets the
+frame length plus a bit extra for the maximum tau possible... or the maximum
+lag I believe.. hmm.. okay... so now we have a signal to work with... hmm...
+so he takes a bit extra... or we need to compute something now... the sum of the
+difference squared?
+
+hmm... is there a way to vectorize this perhaps? yeah... this part doesn't make
+sense to me... i can see why his implementation is so slow... hmm... so both 
+these signals will be the same length... so doing an element-wise subtraction
+would be better... and then lets... then do an element-wise squaring and sum
+up the resulting vector...
+
+hmm... so then he calculates the cumulated normalization... hmm... i mean honestly
+it seems like there's an error in this code here... so tmp is set to zero...
+ahh... or perhaps there isn't as the indexing here startgs from 1... but i 
+should be going by my version... oaky.. so lets see what he does here... we 
+have tmp = 0 and then the first value is set to 1... ahh... as the lags are
+going to be offset... man... i ahve to say this notation is kind of shit and
+the book seems to have typos in it...
+
+hmm... so what is this notation saying? so we have defined a difference function
+here which is a function of tau... tau is the lag... hmm... okay... so the
+we take the signal hmm... and what do we do here... so we operate from j = 1 to
+W here... this would be over the length of the window... hmm... so we take the
+value at j and then substract the value tau values away and then square things
+here... so there's a lot of things going on in matlab here... i mean it would
+be nice to be able to index things by zero... hmm... it might be easier to generate
+an array of the possible lag values and use that instead...
+
+hmm... so what is this lag_max really a function of here? this is the ratio
+of the sampling frequnecy to the minimum value we are consdiering trying to
+find as the fundamental frequency here... ahh... i see how this works... we
+can't detect a pattern larger than this fundamental frequnecy... as the lower
+the frequency the longer the period so the more samples or lags are required to
+get this level of precision...
+
+hmm... okay... so it seems as if i have the diff_squared aspect written
+correctly... however i'm not sure how to handle the indices here... hmm...
+i believe this function should work here... okay... so what's the next thing
+to do?
+
+hmm... so what are we doing here? i mean it seems like we would need to do what?
+hmm... starting from n = 1 to l (which is the number of lags)... hmm... so lets
+see here? do we need to include the sample from lag = 0? hmm... i'm not sure...
+hmm... i mean i'm not entirely sure if this would make sense to consider tau = 0
+here... hmm... so accessing the arrays will work for just one particular value...
+hmm... hmm... i mean this is interesting... i'm not entirely sure what to do with
+it... it is nice to have another method to play with... ultimately i need to be
+able to get the fundamental frequency estimates and then use them to determine
+the pitch marks to be able to implement the PSOLA algorithm...
+
+hmm... i can play with extracting those later... i should make a salad and
+some pasta as i had planned to and pick up the lufa basket...
+
+hmm... okay... so lets see it... there are three different colors being output
+here.... blue yellow and green... i wonder waht they mean.. the blue corresponds
+to the more steady state parts it appears... hmm... so then lets see here...
+green seems to be a bit more transitory however i'm not sure... ahh... so this
+is apparently something which has to do with the aperiodicity... hmm... i mean
+figuring out how to interpret the results seems to be part of it.... that seems
+to be what the german fellow was doing in the DAFX impelmentation...
+
+samples/sec / samples/cyc = cyc/sec
+
+hmm... i mean this one seems a bit different in terms of the output as compared
+to what DAFX reports... it would be good to see these... although the analysis
+parameters would need to be the same...
+
+hmm... so it seems as if the output from alain's yin algorithm is the best...
+well it seems smoother... hmm... well it would probably also be easier to start
+with a single note as opposed to jumping to a more melodic sequence... hmm...
+so lets see here...
+
+so lets see here... i mean there definitely is a bit of vibrato in this signal
+here... interesting... and it's reflected in the fundamental frequency estimation
+it seems... i suppose i couldn't use the frequecny estimation algorithm from
+the phase vocoder as the fundamental frequency is more complicated... and this
+hmm... this is interesting here... i mean how would i fundamentally know what
+the fundamental frequency is? good question... i could always use synthetically
+generated/synthesized signals to test this to know for sure... although that's
+a bit artificial... i mean it would be better if we had something like a tuning
+fork or some sort of physical constant which we were sure of... interesting...
+
+i suppose this will work for now... lets take a look at what comes out of the
+clarinet example... hmm... i mean it really doesn't seem to like unvoiced
+segments i'd say... so then hmm... and there is less viabrato in the signal
+here... interesting... so lets see then... i mean when there's not noise it
+seems to do better... i wouldn't be surprised if the areas where it was failing
+on the singing voice had to do with breath noise...
+
+ahh... the ol nan is messing things up... hmm... so what's going on here... i
+mean we'll need to process the output from the algorithm a bit... hmm... okay...
+so lets see here... what do these pitchmarks even represent? and honestly this
+algorithm here seems a bit shitty from an implementation standpoint... can't
+say i'm impressed by their code so far...
+
+hmm... so i can take a look into this whole pitch marks thing tomorrow to try
+and understand this better...
+
+*12/02/2021*
+So lets see here... now that I have the fundamental frequency detection working I need to get the pitch marks working in general... That would be the next step...
+hmm... putting these on the same axis would definitely be better i believe...
+so this is stupid... none of this code seems to work at first and this is 
+unbeliveably frustrating... ahh... so there's the NaNs to take care of... I can
+just set those to 0... so this is some shit ass shit code here... not sure who
+the hell did quality control for this stuff... jesus this is some sloppy as shit...
+
+i'll be damned... that actually sounded some what decent here in terms of the 
+pitch shifting... hmm... is there something appearing in the subharmonics or
+something there? i'm not entirely sure... it was interesting however... i mean
+really getting into this algorithm would be pretty cool...
+
+okay... so i'll need to go through this pitch marks algorithm in order to fully
+understand things here...
+
+hmm... so lets see here... how does this pitch mark stuff actually work now?
+so i need to find the pitch period... and in a way i have done that by finding
+the fundamental frequencies... interesting... so these pitch marks are in
+correspondence with the maximum amplitude or glottal pulses at a pitch-synchronus
+rate during the periodic part of the sound and at a constant rate duing the
+unvoiced sections.... hmm... so lets unpack this statement here... ahh.. so we
+find the maximum in the waveform... hmm... okay... ahh... so i mean that would
+make sense as well... or they should be appearing at these different different
+pitch periods... there is a waveform which repeats and that is what does this...
+or what am i trying to say here... so the waveform repeats but then what?
+hmm... so lets see... okay so then what do we do... or how do we determine 
+these? i mean i know the fundamental frequency, the hop size and the analysis
+frame length... hmm... so lets see here... what could i do with these? well
+i mean it would tell me where in the original signal i could find a waveform
+with this fundamental frequency... hmm... it would also be interesting to play
+with the parameters of the f0 detection algorithm by using more information that
+we know about the actual signal being processed.... but okey... hmm...
+
+but we could make slight adjustments as well... i mean things could change a bit
+within that window... so lets see here... i mean i could do that a bit as well...
+ultimately it seems like it would be a tool to be able to extract these waveforms...
+but hmm... i mean lets see here... technically there is overlap with the analysis
+frames as we have the analysis hop size to contend with... hmm... i would have
+to take a closer look at the output of the YIN algorithm here to see how it
+works and what i can actually use from it for information... so then once i
+find that point in time which corresponds to the fundamental frequnecy i center
+a hanning window on it so i can extract a waveform which can be overlapped and
+added/put in different places with the other ones to apply the time stretching
+and pitch shifting algorithms... hmm... okay... so lets see here... hmm... it
+seems like a frequency domain approach to pitch shifting might be better... i'd
+have to think about it... this is interesting however... so lets see here...
+
+*12/08/2021*
+So lets see here... where was I at with this? I needed to understand the pitchmark aspect better...
+Hmm... I was going to have to go through an essentially write my own pitch mark detecting/making algorithm...
+Hmm... okay... so lets see here... Okay... so if t_i marks the beginning of a
+pitch mark then lets see here... so from t_i to t_i+1 we have a constant pitch...
+hmm... i mean that makes sense in a way... so lets see here... okay... so lets
+see.. how would i do this? i mean i have a fundamental frequency (which correponds
+to a pitch period) for each different analysis frame... these frames occur at
+intervals of the analysis hop size... hmm... so then lets see here... it would
+be nice to be able to take a segment of the sound and plot the pitch marks on
+top as well as the different windows here... that would really make it clear
+what is going on...
+
+so lets examine what he does here in a lot more depth... so he takes the signal,
+the sampling rate, the fundamental frequency estimates as well as the hop size
+and the frame length and generates the pitch marks... hmm... okay... so lets
+step through this code and plot what's going on... hmm... i mean there's not a 
+huge range of different pitch aspects here.... although it might be interesting
+to experiment with more synthesized test signals to see how the algorithm/system
+responds...
+
+hmm... so lets see here... we set the pitch periods for the unvoiced frames first...
+hmm... and lets see... the length of F0 corresponds to the number of frames used
+for the analysis here... hmm... so interesting.... where does the hop size come
+into play?
+
+hmm... okay... seems a bit like a bold move here... the pitch period of the
+first frame if it is unvoiced is set to 120 Hz... I can rewrite the later...
+but then lets see... if the fundamentl frequency for the frame is zero then 
+we set it to the previous fundamental frequency... hmm... perhaps within the
+context of this algorithm it works but it seems a bit suspect to me in general...
+
+so then lets see here... okay... so then we determine the pitch period here based
+on the fundamental frequency estimate in conjunction with the sampling frequency...
+this needs to be in samples however so we round it... this will likely introduce
+some sort of an error here... interesting...
+
+okay... so then what do we do here... we generate the frame range here... hmm...
+okay... so then this is the length of a frame plus a hop size depending on which
+iteration or i we're at here... hmm... okay... so then the frame range will
+come in later presumably... this is an interesting way to approach generating
+the indices... i mean i do learn qutie a bit by examining the code in such
+great detail...
+
+so then we store the index as the last_m... so this would be the last found 
+pitch mark... hmm.. okay... index starts at one and i presume is updated later...
+
+so with max the first value returned is the value and the second is the index...
+hmm... or location... okay... so then lets see here... so now we're at the 
+beginning of the 1st frame... okay... and we have a new index variable j here...
+j refers to the period number...
+
+so now we set the upper limits for how we search over things... hmm... okay...
+so if we're at the first frame then lets see here... the upper limit on the
+search indeix is the pitch period times i... hmm... i or no... that's multiplying
+it by 1... seems to be an unncessary step here... i mean their code could be a
+whole hell of a lot cleaner... hmm... okay... so the search range is from
+1 up to the upper limit... ahh... this is just for the first frame... so we
+look at the signal on this search range and find the maximum value... this is
+how we're defining things as starting/operating... so we get the value and the
+location and then round the location... hmm... i mean the rounding here seems
+completely unncessary as you're dealing with index values so those will have to
+be integers...
+
+so then we get to the second one here... hmm... so lets see how that works...
+hmm.... somehow i already got the be 3 here? this doesn't make sense... ahh...
+i was playing around with things in the terminal... son of a bitch...
+
+so lets see here... i mean it seems to have found the first maximum here...
+what is it going to do with this information? hmm... and it doesn't seem as if
+the analysis frame has been taken into account... but lets see how this evolves
+here...
+
+hmm... okay... so then how does it handle things for the other frames? or when
+we're not dealing with the first frame here? the upperlimit on the search is
+the previous value plus the pitch period for this frame... hmm... okay... and 
+then what it does is sets the local pitch mark to the last pitch mark plus
+the pitch period... hmm... interesting... so lets see how this works here...
+i mean hmm... okay... 
+
+hmm... so lets see here... so then we look at the remaining periods of the
+1st to the end frame.... hmm... what does this mean/do? is this how they take
+things into account in terms of the actual pitch period? i'm not sure but this
+is interesting...
+
+so then lets see here... so the index is set to the first local pitch period...
+so then we set j to 2... this is the second "grain" or "period number"... hmm...
+okay... so then lets see here... so then we have ourselves a nice while loop
+here... what are the conditions underwhich it operates? the code executes while
+the upper limit on the search range plus the pitch period for that frame is 
+less than the frame range... hmm... okay... so makes some sense here... i mean
+the pitch period could change so we couldn't generate a fixed set of indicies
+beforehand... this would need to be done in this manner... hmm... so then lets
+see here... lets see... although in practice the fundamental frequency is the
+same for each period... hmm... so lets see here... hmm... i mean... hmm....
+lets keep going... okay... so then we set the next pitch mark to be the previous
+pitch mark plus the pitch period... hmm... i mean what if this doesn't align 
+with the maximum here... it would be interesting to experiment with different 
+aspects of this... although how does the hop size come into play? i mean hmm...
+seems like pitch marks might get duplicated... ahh... he does sort and select
+only the pitch marks which are unique here... hmm... interesting... hmm... so 
+then lets see here... then the rest of the frame is populated with the pitch
+periods... hmm... what if things are off slightly? i mean it might be worth
+exploring how things change if i select the maximum in a particular range...
+although this would only really apply when the pitch mark was slightly off...
+i mena which could happen as rounding is involved... but hmm... i mean it would
+be an extremely small amount most likely... it would be good to consider what
+happens in that range there... hmm... interesting... however i'm not sure...
+but might be worth experimenting with... this way if there are differences between
+the different frames and hop sizes they could be modified accordingly... ahh...
+so only if it's unvoiced do we set it to the previous one... it's not until the
+24th frame where things become voiced...
+
+hmm... so it seems like this search upper limit aspect is used to help maintain
+where the original signal is being examined for the different pitch marks...
+itneresting... yes... this is hop the hop size is taken into account for things
+here... we adjust the search range each time based on it but don't worry about
+it... hmm... so lets see here... interesting... so there's the frame range as
+well as the search range... hmm... but what if things change over the course
+of two frames? i mean lets see if that happens... well i mean clearly going from
+an unvoiced frame to a voiced frame is going to cause some issues here... hmm...
+so lets see... lets remove the zero parts and see what happens... hmm... so in
+this case here... the max difference between two consecutive frames is extremely
+small... and being off by a sample might not really be that big of a deal...
+however it would be nice to be able to "correct" things to have the actual maximum
+peaks selected... hmm... so this is strange... i'm not entirely sure how to interpret
+these pitch marks here... it's a good question... how are pitch marks which are
+longer than the signal here theoretically possible? i mean i don't see how they
+could be unless there's some sort of an error in the algorithm here... or my
+understand is not correct... however lets find the values which are less than
+the length and see how they align...
+
+hmm... yeah... these don't necessarily align with what's should be happening
+here... it would be good to develop my own approach i think as i could add in
+the correction factor... yeah... i definitely think i could do better here...
+and in a way this could correct for errors introduced via the fundamental frequency
+estimation algorithm...
+
+hmm... so how would i take this into account or how would i determine the pitch
+marks? well right now we're dealing with a much easier signal... hmm... so then
+like the singing one might be a bit different... i mean based on this signal we
+can assume that the change in frequency between frames isn't great hmm... yeah,
+solving this one first will be crucial i think before i go on to the next signal
+to try and analyze...
+
+hmm... okay... so how does this work here? well i need to go through and figure
+out the pitch marks... although i need to take a leak now... hmm... how many 
+pitch marks do we expect to have here? well there can't be more than the number
+of samples in the time-domain signal... hmm... so lets see here... i mean the
+highest frequency possible would be the nyquist rate... so i can allocate a
+buffer based on a worst-case scneario and then reduce it's size later... hmm...
+okay... so we're assuming there will be some sort of an unvoiced section in the
+signal... but lets see here... hmm... i mean we also need the overall indicies
+to refer to the original signal... and what about the unvoiced parts? hmm... i
+mean i think a lot of different things could apply here... but lets continue/see
+here...
+
+so take the first frame and do what with it? look at the fundamental frequency
+estimate in order to get the pitch period and then determine where the pitch
+marks lie for this particular frame... hmm... however if it's unvoiced then
+what? i mean i'll have to plot things frame by frame to check... so there's also
+going to be a bit of overlap here... hmm... okay... so then now what... well
+i should plot the frame i'm working on...
+
+hmm... so i mean the output of the yin algorithm is pretty crucial here... that
+really helps define what we're actually looking for in terms of the pitch period...
+hmm... so lets see here... i mean i'm just going to have to deal with it i suppose...
+although it would be interesting to see why the YIN algorithm outputs zero here...
+well technically it outputs NaN... hmm... this definitely seems like something
+worth exploring... but i'm not sure how much time i really have to get into that...
+this should be sufficient in and of itself for the length of this project i believe...
+
+hmm... so how do i handle this here? i mean setting it to an arbitrary frequency
+doesn't seem like the best idea... it seems like it would be better to determine
+the first voiced section and use that value so the algorithm properly anticipates
+the transition... man... these algorithms themselves aren't the most polished
+it seems...
+
+hmm... or perhaps the first element isn't the appropriate one to take... well 
+it can be for this first one... i can figure out a more generalized algorithm
+once i get things working more fully... so lets see here... if we have the first
+frame and it is unvoiced then find the first voiced frame to anticipate that
+fundamental frequency/pitch period...
+
+hmm... okay... so this code seems to be working... so then lets see here... i
+mean what to do next? well once i get the pitch mark since this frame as technically
+been declared as unvoiced then i need to generate the different pitch marks for
+it... these pitch marks are determined by the pitch period hmm... so how do i
+move here and what other assumptions about the signal do i make? hmm... lets 
+see here... i mean presuming there's no noise... or the SNR is a certain value
+would be nice... lets just work with this one signal for now and then attempt
+to determine a more appropriate way to approach things later...
+
+so okay... i have the pitch period here... then i need to generate the different
+pitch marks on the scale of the original time indices... hmm... so lets see 
+here then... so how do we know what to do here? i mean this is interesting...
+so the pitch marks aren't necessarily going to correspond to the different
+frame indices... hmm... so how does this work? once I find one pitch mark then
+i need to find the next one, no? hmm... this pitch mark finding algorithm is
+actually far more complicated than i had anticipated... although hmm... i mean
+it's getting close to lunch time so i should pick-up the bread and head home...
+and think about doing the laundry as well...
+
+hmm... okay... so lets see here... i mean i will need to arbitarily define this
+pitch mark... but how much do i know to look foward for? that's a good question...
+and then once the pitch mark has been set the task of adjusting them to the
+correct places needs to come into play... i'll need a small window of data to
+look at there...
+
+hmm... so lets see here... we have the pitch period per frame... hmm... but how
+do we know what to do in terms of processing things? or ensuring that we don't
+generate too many pitch periods... there is qutie a bit of overlapping data here
+which we need to take into account... hmm... interesting...
+
+i understand know why he has the search range... ahh... yes, this is fundamentally
+much more complicated of a task than i had anticipated... i can see why the search
+range is necessary and i think i understand what he's doing here... hmm... there
+are definitely going to be errors in this regardless... i need to get all the
+variables known first... okay... so what do i do? i take a pitch mark and then
+go the pitch period foward... add a bit of correction for voiced sections and
+then keep operating like that... but for how long...? each hop size only moves 
+32 samples or so... and i'd like to be able to do this for longer/larger amounts
+of data... hmm... so how would i handle this? i mean he just keeps going foward
+until the next frame... and we do have the assumption that the fundamental 
+frequency doesn't change a whole lot between frames... well for now... it would
+be interesting to see how this adapts later on... but okay lets keep going here...
+hmm... so that is why there is the frame range here... this approach is starting
+to make more sense... so i add pitch marks until the frame is exhuastively
+searched for them... then what do i do? i mean his approach seems a bit inelegant
+it's more of a shotgun approach... it would be easier to not do this sort of a
+thing... i mean i think my approach might be a bit better and more akin to how
+something would be done in real-time... okay... so how do i do this? put a 
+pitch mark down and then go a pitch period forward... and do this for the length
+of a frame... hmm... interesting... hmm... so then lets see... although for the
+first one things are a bit different... as there wouldn't be a previous pitch
+period to refer to ...or a pervious pitch mark that is... although hmm...
+i mean it might be easier just to start this or initialize it to 1... although
+i need to do this for the length of the frame here... hmm... how do i achieve
+that? hmm... so lets see... well i need to do this for the length of the frame...
+hmm... however knowing the range of the values i'm looking at would be better...
+although this would be quite different if i were operating in a real-time context...
+hmm... although that would be interesting to figure out... i mean ultimately you
+would just be operating on a frame-by-frame basis... so you would need to wait
+until enough frames passed before you could really operate... hmm... okay...
+
+hmm... but thankfully i don't necessarily need to think like that... but it could
+be beneficial... so lets see here... i mean okay... i have i1 and i2 designating
+the start and the end of the frame... okay... so then since i have the previous
+pitch period i can keep advancing to the next frame... until the previous pitch
+mark plus the pitch period of the current frame is within the actual range of
+indicies which i'm considering... or within the range of the next frame...
+hmm... so how do i do that? i mean i don't need to consider things from a real-time
+perspective at the moment... i can operate in a much more optimized fashion for
+processing something "offline"... hmm... okay... so lets see here...
+
+i need to start implementing this...
+
+ahh so i need to do this for the entire frame here... hmm... so lets see...
+that's why the while loop is required... hmm... lets see here soo how does this
+j index work... i mean it seems like it would point to where the current pitch
+mark is... so it starts at 2... ahh... so this really points to where the next
+pitch mark will go... hmm... so lets see... so while the previous pitch mark
+plus the current pitch period is less than the last point in the frame then we
+set the next pitch mark as being the previous pitch mark plus the current pitch
+period... it would probably be easier to keep things consistent here and have j
+refer to the current pitch period... or the most recently set pitch period...
+okay... so then when we do this what happens... i mean okay... so we go through
+the length of the frame and set the pitch mark to be like this... hmm... so lets
+see here... i mean... we also need to keep track in terms of when we set the 
+current frame... or when we've processed the entire frame... seems a bit complicated...
+but this would be hard to do... lets just do this and plot it to see how it works...
+
+hmm... i also need to find the max value as that is supposed to be where things
+occur... but i'm still on the current frame... this is much more complicated
+than i had anticipated...
+
+hmm... i mean i see how the local pitch marks would be good to keep track of 
+as well... interesting... this gets more and more complicated... it's quite
+fascinating however to see how this all works... i mean there's not a whole 
+hell of a lot i can do from this standpoint based on what the output of the 
+YIN algorithm has given me in terms of the fundamental frequencies... however
+i could check to see when the first voiced frame is and if that occurs with in
+the first frame length i would know there's a certain amount of overlap here...
+
+so i mean this is correct... but then what do we do with this information? i
+mean in a way i suppose i'm using this correctly... it would also be good to 
+search for the max within that next upcoming range to make sure i'm... hmm...
+i mean i could also just fundamentally trim the silence from the beginning
+and the end of the signal... but i don't want to necessarily remove the attack
+part...
+
+hmm... i mean ultimately i should try it but not necessarily commit... i'll move
+it forward and then search for the local maximum to align it... hmm... i would
+really like to get these pitch mark guesses correct... well they shouldn't
+be guesses really... i mean some sort of a silence detection algorithm would
+be nice hmm... although i mean the pitch becomes much more apparent as time
+goes on... or at least the repeating aspect of the waveform... hmm... so what's
+another way of doing this? I could try and find the maximum value in the frame
+and consider that as to where a pitch begins... that would make sense and then
+work better... hmm... i mean lets see here... so what to do or how to handle this?
+find the maximum in the frame and then go forward and backward as far as possible
+to find the other places where pitch marks should be... lets give that a shot...
+
+so now that i have the guess what do i do? take the pitch period and go as far
+possible as i can foward staying within the frame and set the pitch marks...
+hmm... however this isn't going to necessarily give them in order... that's
+where sort comes into play... so hmm... how am i going to do this if i don't 
+know the number of pitch marks on either side? i mean I can use a more dynamic
+strcutre... however this is inefficient clearly...
+
+hmm... i mean this was a much better approach to finding the pitch marks here...
+now i can go back and adjust them to be more accurate... how do i go back and
+fix these? ahh... i can go back over them and look in a windowed area to adjust
+them to be correct... this window size will likely have some sort of an upper
+bound or something regarding the size... or what does this represent? i mean 
+there has to be a more intelligent way to do this... we know the range of samples
+we're looking over, we also know the sampling frequency... from this we can get
+the actual or better aligned pitch marks...
+
+hmm... so lets see here... now what to do... i should keep track of a new/adjusted
+set to see how things change... hmm... it seems as if we could find some sort
+of a bound here based on the fundamental frequency estimation which allows
+up to know with more certainty the size of the window we can use...
+
+hmm... it would be good to plot vertical lines which show where things are located...
+or which show the different window in which we're looking for the local maximum...
+hmm... interesting... hmm... so how do i know those are the ones i want to 
+look at...? good question... hmm... so it actually seems as if this other one
+might be correct and the corrected on might be off... however we're talking just
+one small part right in the beginning of the attack here... it would be better
+to keep moving on here with the different frames to figure out how to adapt
+this... hmm... i mean this is quite fascinating... hmm... i'll have to figure out
+how to process the rest of the signal here... so what do i do now then? i know
+the points which i have properly labeled... hmm... so then i'll need to advance
+to another frame... however... hmm... i mean how do i do this while properly
+keeping track of the number of hops and everything... what is the frame length
+here? unfortunately the length of a frame isn't an even number of hop sizes...
+this isn't good... what would i do then? hmm... well i could take the closest
+numerb... it seems i can move 45 hops... and theni would be at the start of
+another frame and i'd be able to use/adjust the previous pitch period... i mean
+this is doable... hmm... interesting however... this is a lot more complicated
+than i had anticipated... i'll need to clean this up here a bit... hmm... i also
+think i should handle the first frame as an exception... this shouldn't be what
+
+so then what do we do now? we need to advance by floor(frame_length/hop_size) 
+each time and get the fundamental frequency for that new point we're at and
+then figure things out from there... hmm... i should just wrap up the other
+project so i don't have it weighing on me and can focus better...
+
+*12/09/2021*
+Hmm... so back to the frame analysis and pitch mark problem... hmmm.... okay... 
+so what do I do here? I can move forward by a frame amount or by the smallest
+amount i had calculated before... there will be some overlap but that will be
+okay... so now that i've hopped the frame what do I do? i need to go through
+and find the new pitch marks for this segment... okay... so i have the fundamental
+frequency for this frame so I can use that to get the pitch period... hmm...
+okay... so then what do i do next? well i'll need another local pitch mark
+variable? or can i just work with the pitch marks in general? i mean i'll only
+be tacking them on to the end... however it would be nice to make sure that 
+we're only considering the new ones... so dealing with the local pitchmarks
+would be extremely useful... so i'd also need to get the pitch marks from the 
+previous analysis parts which includes stuff which might overlap... interesting...
+
+however... how do i want to start here? i mean i should find the highest pitch
+mark which was discovered previously and use that as a starting point and add
+the pitch period to this... hmm... so i think a small amount of overlap might
+be beneficial here... interesting... so lets keep going here... okay... so
+i think i got this... hmm... i might be able to assume that the last element
+in the pitch_mark array corresponds to this frame... that seems like a reasonable
+thing to do...
