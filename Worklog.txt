@@ -809,4 +809,443 @@ the pitch period to this... hmm... so i think a small amount of overlap might
 be beneficial here... interesting... so lets keep going here... okay... so
 i think i got this... hmm... i might be able to assume that the last element
 in the pitch_mark array corresponds to this frame... that seems like a reasonable
-thing to do...
+thing to do... hmm... okay... so this should give us some new estimates now...
+
+it would also be good to plot the last pitch mark from the previous frame...
+hmm... okay... so now i need to go in and fix the estimates a bit... hmm...
+okay... so this seems interesting here... i believe i can take this and turn it
+into something which is much more robust and works for the entire length of the
+signal...
+
+okay... so now what do i do? i could take this and do it again... it would be
+necessary to do that... i mean i essentially need to run this in a loop until
+i get to the end of the signal... hmm... how do i do that? i mean i could loop
+based on the number of F0 estimates... or i could do it based on the length of
+the signal... like hmm... not sure... lets just do it based on F0 estimates for
+the moment and then clean everything up later...
+
+hmm... so i need to copy the corrected pm into pitch_marks after each analysis 
+is complete... hmm... okay... i could increase the search window for the max
+to determine the corrected pitch marks... interesting...
+
+hmm... although in this one the previous part of the frame wasn't captured...
+i should modify this to print from slightly before the previous pitch mark was
+captured... interesting... and i could add a vertical line indicating where the
+actual frame begins...
+
+hmm... so it seems to happen other times as well... but it's not so much of an 
+issue here as we have all the data and it makes it possible to ensure we're 
+searching all the data... or over a continuous section... hmm... so interesting...
+doing this real-time might be a bit more complicated... you'd need to establish
+bounds based on the size of the frame and jumps to make sure you have enough
+data to be confident in the decision of the algorithm...
+
+hmm... i mean so far it seems as if the algorithm is working to me... i'll need
+to run the entire thing to see how it performs... hmm... so what i had anticipated
+is an issue...
+
+ahh... we're getting to a point where things are unvoiced... i need to make sure
+to set the fundamental frequency correctly here... hmm... son of a bitch here...
+if it's zero there could be other frames which are zero in between... i'll need
+to move back a frame jump...
+
+hmm... so the terminating conditions for this loop need to be adjusted/determined...
+so how do i do this... i mean i could change this to while i + frame_jump < 
+length(F0) as I believe that should fix things to make it so the code doesn't
+execute after the last frame has been examined...
+
+hmm... so what to do next? I mean this looks good enough to be something i can
+operate with... i'll need to encapsulate this into a function so i can use it
+with the rest of the code... i can then come back and figure out a better
+way to approach the intitial frame, especially when it is unvoiced...
+
+okay... so lets turn this into a function and then go take a dump... so now lets
+make this much more efficient... how to go about doing this? hmm... i mean 
+it seems like it might work now... but is it worth making things more efficient?
+i don't think i'm graded on efficiency here...
+
+hmm... okay... so lets see here... lets compare my algorithm to their algorithm...
+how would i necessarily do this? i could subtract the values... although it might
+be easier to plot them on the same graph... i mean what the hell are they doing
+in this algorithm here? that's a good question... hmm... interesting... so now
+i can get to the part where i get to actualy modify the signal and implement the
+PSOLA algorithm...
+
+hmm... i mean it almost sounds like a bassoon there... interesting... so then 
+what to do... what about shifting it up? i mean this sounds a lot better... hmm...
+like their algorithm doesn't even work here... this seems to be a huge load of
+shit on their part... like seriously... was there any sort of quality control 
+at all done here?
+
+okay... so lets take a look at the actual pitch shifting and audio manipulation
+part... so lets see here...
+
+so now that i have the ptich marks the next part would be to extract each of the
+"grains" with a hanning window... hmm... so lets see here... how does this work?
+so then lets see here... so we extract a grain based on a hanning window of even
+length... it might be useful hmm... to do what? well i mean what if we used a
+window with an odd length? then we can have the maximum value centered exactly
+in the extraction window... hmm... however does that really gain us anything?
+i'm not sure... hmm... i mean i could easily modify this here to support using
+an odd number of samples to get better symmetry... but how is this used here...
+hmm... i mean i'm not sure... fully understanding the impact of things will be
+necessary later on... however there are other issues which come up due to the
+finite-precision of the integers... or due to the fact we can only represent 
+pitch periods which are an integer number of samples... hmm... i'm beginning to
+see how much of a problem this could be depending on the resolution and accuracy
+you need... this is something you just have to contend with i suppose... and 
+i suppose this is better than nothing... as there are a lot of things you can
+do in the discrete-domain which you can't necessarily do in the digital domain
+so that makes things easier... hmm... okay... but lets see here... this is also
+another issue... how do we determine what F0 estimate to use given that we have
+several overlapping frames of adjacent data.... i mean that's a very interesting
+question to consider... so lets see here... how would i do it? i mean i'm using
+this basic signal here where we know that the fundamental frequnecy isn't going
+to vary a whole lot over the course of the signal... if we're off a bit in terms
+of the estimate then hmm... well lets see here... perhaps i could make a choice
+which minimizes the error... perhaps i could choose an analysis frame which
+corresponds to where this pitch mark is as close as possible to the half-way point...
+hmm... i mean lets see... is that what we want here? that's a good question...
+lets see what they recommend here... Hmm... well i'll be damned... they did 
+introduce a similar concept to what i had done... i mean how surprised an i be...
+
+i mean wow... this actually sounds pretty good with this algorithm here... or
+with this voiced section... hmm... so lets see here... what if i speed 
+things up a bit? i mean wow... although it would be interesting to see how this
+works more on voiced and unvoiced segments... or how intelligibility and the
+perceptual aspects of speech change depending on what the scaling factor is...
+hmm... that might be something to explore as well...
+
+so lets see here... how do i do this... I need to implement my own version now...
+although it's getting close to lunch time... perhaps i can make a salad before
+lunch... seems like an appropriate thing to do here... interesting... good thing
+i made some progress here...
+
+hmm... okay... so lets get the window extraction method working... so lets see
+here... how should i do this? given that the various pitch marks can exist in
+a given frame... then i should for a given pitch mark, find the frame where it
+is most centered... i mean i would need to find the frame where things are 
+closest to it... hmm... so lets see here... i'll generate all the different 
+starting points for the frames and then work from there... so for a given integer
+i want to determine which frame it is closest to the middle of... hmm... okay...
+given these parameters it should be easy to find...
+
+hmm... does this necessarily promote better pitch resolution? hmm... perhaps
+based on how the algorithm itself works... ahh... however for the unvoiced 
+sections it would be nice to have the previous fundamental freuqnecy... i might
+need to do some pass by reference or something... interesting...
+
+okay... so then i need to generate the list of frames here... this might be 
+more work than it's worth at the moment... might just be easier to get the 
+first frame where this is and rely on the setting of the unvoiced frames...
+hmm.... i migth need to assign the unvoiced frames a frequency ahead of time...
+interesting...
+
+okay so back to this... i need to find the first frame which includes this
+pitch marker... how do i do that? well i can just generate the indices for
+different frames and go from there... hmm... it might be easier to use the modulo
+thing to figure this out... it could save some time in terms of searching things...
+ahh... well... i mean... hmm... it would definitely be more useful here...
+hmm... although how do we take the hop size into account... hmm... what is my
+goal here...? at this point i want to put the hanning window around each of them...
+i can extract them later... okay... so lets see here...
+
+hmm... so how do i process these fundamental frequency estimates... hmm... this
+is interesting... so what do i do? i mean i only need the non-zero elements for 
+the first one... otherwise i can take the discontinuous parts which are zero
+and set them all to the same f0... hmm... so lets see here... so i need to find
+the point in this array where this massive difference occurs...
+
+okay... so now that we have more continuous data to be able to calculate the
+pitch periods we can proceed... hmm... although i mean i can see a benefit in
+terms of calculating the various pitch periods per frame and storing them...
+especially at this point as we would still have information available to be able
+to determine whether or not a frame was voiced or not...
+
+okay... so how do i determine where a a frame is now... hmm... interesting...
+lets see here... or how do i determine the frame where a pitch mark is now?
+i mean lets see here... how do we determine the different frames... they move
+by hopsize each time and have the duration mentioned before... hmm... interesting...
+i mean lets hmm... well i just keep incrementing i and then stop once i found
+the frame where the pitch mark is... hmm... makes sense... not the most elegant...
+how could i find it other wise... don't focuson elegance at the moment... you
+can always go back and refactor... get something robust up and running first...
+
+okay so if it's on this interval then i can use this frame's pitch period to 
+extract the different windows... i mean i can probably skip the first pitch
+mark to make things easier to deal with now...
+
+hmm... okay... so how do i plot/extract the windows here? hmm... that's a good
+question... lets see here... so i have an odd number length for the window and
+i want the window to be cenetered around the pitch mark... how to do this? also,
+how do i know it's really symmetric? I would need to check this myself... hmm...
+so lets see here... i mean should be pretty easy...
+
+hmm... do i want to see the extracts now or what do i want to do? it would be
+nice to have this all plotting... so if i plotted the time-domain signal, then
+i plotted the pitch marks, and then i plotted the windows on top of that...
+hmm... it might be easier to do this every 100 pitch marks or so instead...
+
+hmm... seems like it might be worth normalizing the signals here... hmm... lets
+see... yeah... i'm fairly confident these are centered here... hmm... okay...
+so unfortunatley on this time scale things are a lot more difficult here...
+
+hmm... okay... so lets see here... we have to look at the synthesis algorithm
+here.... so lets see what's going on here... so for every syntehsis pitch mark
+~t_k... hmm... so what's a synthesis pitch mark? i presume this refers to the
+time scaling in some sort of a fashion here... so ~t = alpha*t... hmm... so this
+is a timescaled version somehow... what to do here... i'm not sure... ~t is the
+output time scale... makes sense... so then lets see here... okay... i mean
+it just changes the points at which things occur... hmm... interesting...
+although that is entirely the point of time scaling... or fundamentally what
+time scaling does...
+
+okay... so lets see here... what we do is find the corresponding analysis 
+segment i, identified by t_i... which minimizes the time distance of
+|alpha*t_i - ~t_k| hmm... so lets see here... so what do each of these different
+time indices represent here? so we want to find the closest pitch mark to the
+synthesized pitchmark... ahh... but it's alpha*t_i... so this is what?  and
+how do we get ~t_k... the k just indicates that it's a synthesis mark... hmm..
+okay... so i'll take this to mean find the closest pitch mark we can find...
+
+so then we have the next step where we overlap and add the selected time segment...
+hmm... so what does taht mean... so some segments will be repeated if we have
+time expansion... and then some will be discarded if we have time compression...
+i can sort of see that here... hmm... interesting... so determining the time
+instant where the next synthesis segmenet will be centered comes next... this
+needs to be done in a way which preserves the local pitch... hmm... so then 
+what is this...? the next synthesis pitch mark is determined by taking the 
+previous synthesis pitchmark and adding the the pitch period associated with
+that point... hmm.. this is done by adding the pitch period associated with 
+t_i from before... hmm... so it seems as if locating the different pitch periods
+for specific pitch periods or time instances... yes, this is more a time instance
+here... this is necessary... so this will come back again... okay... so then
+lets see here... so i think i see this here... i have the analysis part down
+pretty well... interesting... so then lets see here... ahh... so this is another
+interesting way to get the pitch periods here... this can be done by taking
+the difference between pitch marks... interesting... so lets see here... i
+mean hmm... so they then remove the first and last pitch mark... i mean
+i had done that as well... hmm... okay... so this algorithm itself isn't that
+complicated now that i view it... quite interseting really... i can see how
+this would be usefulf for embedded/real-time systems where resources are tight...
+
+so then lets see here... hmm...okay... so he then pre-allocates a buffer to
+store the output signal here... interesting... so then lets see here... we
+then calculate t_k... this is done by taking the second pitch period and adding
+1 to it... so then we enter the main processing loop here... hmm... that seems to
+be about the smallest value which could possibly be chosen... interesting...
+
+so then what next... the current pitch is set to the pitch period associated
+with that analysis segment... and we findt he hmm.. how does this work... 
+so we multiply m by alpha... interesting... m contains all the pitch marks...
+so this produces a bunch of scaled versions of the pitch marks by the amount
+we plan on scaling the signal by... hmm... so lets see here... we then subtract
+the synthesis pitch mark from it here... hmm... interesting... and then we 
+determine the minimum value... ahh... so this is the initial step of the algorithm
+here... we want to find the analysis segment here which is useful... or closest
+to the output segment... hmm... okay... makes sense... then what...? so then
+now that we've found the closest pitch mark we get the corresponding pitch
+period? hmm... i mean since we're operating on m here which is an array than
+this makes sense here... okay... so then we take the input... hmm.. and we 
+extract the grain which we are looking for... or the windowed segment... depends
+on what you really want to call it here... interesting... i already came up
+with similar code before... so then we need to figure out where we add this
+segment to the rest of the signal... interesting... there's the iniGr variable
+and then the endGr avriable... theses are determined by adding or subtracting
+the pitch period to the synthesis marks... interesting... makes sense... so
+then on the last segment they do something different... they just end things...
+
+hmm... so lets see here... so we then take the signal and output it... hmm...
+or what to do here... we extract the previous frame from things here and then
+add the grain... i mean that's the overlap and add part... hmm... okay... makes
+sense... that really doesn't seem too complicated to implement here... 
+interesting...
+
+and then what do we do here? ahh... this is interesting... so this is how the
+pitch shifting aspect is implemented... we divide the pitch period by the 
+shifting factor hmm... i mean this puts the next synthesis pitch mark closer...
+well that makes sense as reducing the pitch period corresponds to increasing
+the frequency... interesting... and then increasing the period refers to decreasing
+the frequency... makes sense... hmm...
+
+so lets see here... now we get to pitch shifting based on the PSOLA... interesting...
+so this is the dual operation to resampling in the time-domain... interesting...
+lets see here... here however we are resampling the short-time spectral enveleope...
+hmm... so what does that mean? short-time means it would have to be over some
+sort of a window... it wouldn't be the entire spectrum we are looking at here
+as the spectrum evolves over time... interesting... okay... so lets keep going
+here... so he describes the short-temr spectral envelope as a frequency curve
+going through all the amplitudes of the harmonics... hmm... interesting...
+hmm... okay... so i can see that working here... although i'm not entirely
+sure what's going on... i mean so then they mix up the different parameters
+here... nice work Udo... so then the haromnics are scaled by 
+f_i_new = beta*f_i_old hmm... okay... i mean that's a simple lienar scaling
+factor here... okay... so then the amplitudes of the harmonics are equal to
+the newly shifted ones... not necessarily what they previously were... ahh...
+i mean the proportion of the harmonics needs to be maintained in order for the
+instrument to still sound like itself... interesting... so i'm not sure what
+he's saying here exactly... but i can seehow the haromnic shifts a bit... but
+things depend on the pitch shifting algorithm... hmm... interesting... so then
+what's going on here... it seems as if we've increased the frequency substantially...
+well doubled it in a way... interesting... so lets see here... well maybe...
+i'm not sure exactly... i mean the time domain scaling aspect makes sense...
+and there are some slight frequency shifts going on here... i would have to
+chug/go through the math myself to figure this out... interesting...
+
+hmm... okay... so lets see here... so then the changes in the spectrum can be
+noted here... hmm.. interesting... so we have the original time domain signal
+up here... then we have 4 different legnths for the window... they correspond
+to the different pitch periods... interesting... so then lets see here... the
+shortest window has the least resolution... this corresponds to what we had
+learning/observed in class... then as we gradually increase the pitch period
+we get more resolution... which makes sense... the window gets longer... and we
+are multiplying the signal by this window... ahh... but then what i'm thinking
+of is the spectrum of teh windowed segment... not necessarily the spectrum of
+the segmenet itself... quite interesting... but hmm... i'll have to think more
+about what this represents... i mean this ultimately determines the spectrum 
+of the signals we are adding together and overlapping... interesting... i mean
+understanding this was part of the goal from the beginning... hmm... okay so
+lets see here...
+
+ahh... quite interesting... in the pitchshifting part the pitch periods are
+modified while in the time stretching part the pitch periods remain constant...
+this is quite fascinating...
+
+hmm... so lets see here... interesting... so PSOLA is nice for pitch shifting
+voices sounds while maintaining the formant position... which then corresponds
+to the vowel identity... hmm... interesting... makes sense... so there's a certain
+preservation of the spectrum in a way... interesting... so lets see... so the
+idea consists of time streching the positition of the pitch marks... hmm...
+okay... and the segment waveform isn't changed... hmm... interesting... this
+makes sense and is waht you would expect... i mean presumably captured within
+this waveform is the essential essence of the signal... hmm... interesting...
+and then the more waveform you have the longer the period could be and the more
+you would know about what's going on in the lower part of the spectrum... 
+interesting...
+
+so the underlying model of speech production is a pulse train filtered by a 
+time-varying filter corresponding to the vocal tract... makes sense... the 
+input segment corresponds to the filter impulse response and determines the
+formant position... hmm... interesting... so this shouldn't be modified... hmm
+okay... i can sort of get that... the pitch mark distance corresponds to the
+speech period... okay... makes sense... this is what should be modified...
+the aim of PSOLA is to extract the local filter impulse response...hmm... okay...
+this is the goal of the analysis part... interesting... makes sense... so okay..
+then he talks a bit about what i saw before regarding the windows and stuff...
+but then it's also mentioned that if we don't stretch the segment then the formant
+position is maintained... hmm... i mean makes sense to me... so then lets get
+to the overlapping part... overlapping the segments at the new pitch period
+corresponds to resampling the spectral envelope at the desired pitch frequnecy...
+interesting... so we're resampling the spectrum... i'll need to keep that in
+mind...
+
+*12/10/2021*
+Hmm... okay... so lets see here... I need to get this main processing loop 
+implemented... I feel i have a pretty strong grasp of what's going on here 
+and what the algorithm requires... I'll do the time stretching for now and
+then add in the pitch shifting later... okay... hmm... so lets see here...
+i'm not sure i understand these synthesis marks and everything... also, i'll
+need an alpha parameter... so i need to find the closest pitch mark here? i
+should plot this out to visualize it better... keep in mind here we aren't 
+adjusting the pitch period at all... we are keeping it constant... hmm...
+assume a constant alpha for now... however dealing with a non-cosntant alpha
+is something that would be extremely interesting to consider... hmm... okay
+so lets see here... we have ourselves what here... hmm... so then lets see
+here... what is ~t_k... hmm... what occurs in the code here... so he scales
+the pitch marksk by alpha... ahh... so the pitch marks refer to the sample
+index in the original signal where the pitch periods are declared as occuring...
+hmm... okay... so lets keep going here... hmm... so what am i really doing
+here? i mean i want to change the duration of the signal but keep these pitch
+marks consistently placed... i'm thinking more in terms of pitch shifting where
+this is really time-scaling... okay... so lets go on here... so now the t_k's
+are the synthesis pitch marks... hmm... so lets see here then... so how do 
+these different t_k's work? we're also somewhat limited by the pitch period
+as well... i mean this determines the fundamental discretization of what we
+can use in terms of length... interesting... so lets see here... what to do
+next?
+
+well i think i'm beginning to understand this better... but it's still not
+clear to me how these synthesis pitchmarks are determined... i mean it seems
+like we look at where the signal would be if we changed the time scale and then
+what... then we get the original part of the signal which corresponds to the
+new time scale as closely as possible and then extract and overlap them...
+hmm... i mean i think there are some subtler things going on here...
+
+hmm... so they set the first synthesis pitch mark as being the first pitch
+period plus 1... Hmm... interesting... okay... so while the synthesis pitch
+marks are less then the length of the output here keep processing... hmm... 
+however if all the pitch marks are scaled by the same amount... hmm.. no... that
+would change the pitch period if we adjust this... the only way they could be
+moved along the axis here would be though basic translation... or adding or 
+subtracting a constant here... hmm... interesting... this is quite fascinating...
+
+so what does this scaling the pitch marks by alpha achieve? is this what happens
+when you theoretically play the signal back at that rate? hmm... not sure... but
+lets see here... i mean we do that and then find the index which is cloest to
+where the synthesis pitch mark is going to be... hmm... although... i mean since
+we need to keep the pitch marks at a constant rate between each other to keep
+the pitch the same... hmm... i mean affecting the beginning and ending of the
+signal is a bit difficult/different... it's always the corner cases which are
+the issues it seems... so then we get the pitch period from the original signal
+associated with the mark which is closest to this one... hmm... okay... so then
+we extract the signal... hmm... interesting... okay... so then what's next...
+we get the pitch period... then we extract a windowed segment... interesting...
+so then we need to overlap and add this with what is in the output buffer...
+hmm... okay... so we calcualte the upper and lower bounds based on the current
+synthesis mark... hmm... okay... then what next... well we exit the loop if 
+we're near the end of the signal here... interesting... hmm... so then lets
+see here... okay... so we then set  the next synthesis pitch mark to be the
+previous one plus the current pitch period... i mean that makes sense... and it
+works out nicely that we've selected a window to be twice the pitch period length...
+interesting... so then when things overlap we get a pitch period of overlap...
+hmm... interesting... although that's assuming a constant pitch... if the pitch
+changes then things might be different... hmm... i mean exploring how this works
+on signals which don't have a constant pitch would be nice... welll i mean i
+do that here to an extent... the flute recording as a bit of vibrato to it...
+hmm... i can try those things later... hmm... i mean i get all of this code 
+except for the scaling part here... but goddamn... this is so simple and beautiful
+it's hard to say no... or to not appreciate this... interesting... although
+hmm... i mean changing these different pitch periods... or moving these things
+around... hmm... i wonder how that affects the processing... although what if 
+time is compressed... then perhaps these things could be useful... hmm... well
+the first one would have to be that... that makes sense... interesting... i mean
+we've set the first syntehsis pitch mark to be where the the first pitch period
+is... hmm... i wonder how the initialization of things changes stuff here...
+interesting... hmm... interesting to consider/think about... well mabye not
+depending on the time scaling factor... this is really quite fascinating to
+think about... ahh so we skipped one here... hmm... i mean i am compressing 
+the time scale here so that's an interesting concept to think about... hmm...
+i mean it would be interesting to plot the synthesis marks on a scale with
+the analysis marks for comparison... hmm... i mean the difference between the
+pitch_marks is fairly constant within a few samples... that more is likely due
+to the rounding and other aspects which come into play from the pitch period
+estimation... hmm... well i think i know enough to go on here in terms of 
+recreating this functionality... i can then go through and test things/stream
+line them all the make them more efficient...
+
+hmm... i mean this is interesting... so the pitch periods... lets see... like
+it is much more efficient to deduce that from the pitch period... so then lets
+see here... ahh... so i see why we need to add one here... so we don't end up
+getting a zero indexing element... hmm... interesting... so lets see here...
+
+hmm... so it seems as if things change here in terms of the dimensions...
+i'll need to re-write everything to be a lot cleaner and more consistent in
+terms of these aspects as well as get some less clunky variable names...
+
+okay... so i should rewrite this to be a lot cleaner and more organized and 
+then i can run some tests on this one file and generate some graphs... although
+it would be good to get a sense of what philippe is looking for here... hmm...
+however i mean i'll still need to refactor things to make them cleaner and more
+efficient...
+
+hmm... interesting... it would be interesting to see how much i could exploit
+this one sound clip to generate a melody or something... hmm... i mean yeah...
+that would be super interesting to explore and i would need a much more efficiently
+made algorithm... or much better encapsulated one... so the basic pitch shifting
+can work here... hmm... so then what should i do here? i mean it would be 
+nice to have a much higher level script where i just specify the file and the
+time stretching and pitch shifting parameters... from there it goes through an
+performs all the various necessary components to get the output (i.e.
+calculating the fundamental frequency, determining the pitch marks, and then 
+running the actual PSOLA algorithm itself)... interesting...
+

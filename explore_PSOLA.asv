@@ -26,3 +26,6 @@ my_pitch_marks = getPitchMarks(x, Fs, f0, results.hop, results.wsize);
 
 y_mine = psola(x, my_pitch_marks, .75, 1);
 % y_DAFX = psola(x, DAFX_pitch_marks, 1, 1.25);
+
+%find the frame where the current pitch mark is closest to the center
+for pm in pitch
