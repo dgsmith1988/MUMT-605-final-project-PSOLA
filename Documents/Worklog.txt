@@ -1271,3 +1271,452 @@ hmm... so i've got a nice implementation up and running... i can go through and
 clean things up/fine tune them a lot more... but i need to take a shit and
 should probably head home to get some food as it's getting close to lunch time
 and all that...
+
+so lets see here... i mean i should clean up and refactor things to make it
+better... hmm... how could i test this? well i mean putting a straight sine
+wave through it would be interesting... this would be interesting so what type
+of tests to we want to do here... hmm... i mean i could divide the tests into
+two different types... one would be functional to prove out the algorithm...
+the other would be tests to show the functionality... hmm... i mean
+
+*Proving out tests*
+Sine wave
+
+*Transposition*
+Limits of time stretching
+Limits of pitch shifting
+Harmonization
+Recreating a melody
+Intelligibility of vowels
+
+But okay... so lets see here... how would the sine wave test be useful? I mean
+it would ultimately be the easiest thing to process here... How would I make 
+this work however? what would be the best way to do this? it would be good to
+make sure that the sine wave is periodict wrt. the sampling frequency... hmm...
+so how do i know this... we need to make sure that an integer number of periods
+so how do i do this? Fs = 44100...  What if we had something at 441 hz here...
+this is 441 cycles/sec, 44100 is samples/sec, this would be 100 samples long
+that's an integer valued pitch period... okay... so lets see here...
+hmm... so how do I do this? it would be good to have zero padding in the beginning
+and end... hmm... so then how do I do this...? well i mean an integer number of
+cycles would be nice... and potentially applying some sort of an amplitude 
+envelope would be good here... hmm... so lets see... so how do i generate a
+signal at this linear frequency here... so we have 441 cycles/second... how
+do i convert this to radians/sample? hmm... i mean what would cause this? this 
+is interesting... it might be good to find where correlation is the strongest
+to then see if some sort of a phase shift has been inserted or something... they
+sound pretty identical to me... stepping through the code with this sine wave
+would really help illuminate what's going on here... hmm... so what does this
+window represent here? hmm... that's a good question... this is the number of
+samples over which we're examining the signal to determine the maximum... so this
+determines the number of samples... ahh... well i mean since we know the pitch
+period of the particular frame couldn't we just base it on a fraction of that?
+
+this seems to be working... lets send the flute through it again to make sure
+it still works... seems to be working... interesting... hmm... this is quite
+fascinating here... lets take a look at what philippe suggested we do for the
+project/presentation... some ramping would be nice here...
+
+Tomorrow: Go through sine wave verification test
+Monday: Prepare more interesting/perceptual tests
+Tuesday: Prepare report/presentation
+Wednesday: Present and submit things
+
+*12/11/2021*
+okay... so it definitely ends and starts on a cycle which is nice... hmm... this
+limit is hardcoded here for the time axis... how do i change that? well lets
+see... i have the length in the number of samples hmm... so how do I round this
+up to the nearest half a second? hmm... this isn't half a second here... hmm..
+so what to do then? hmm... okay... so i suppose this makes sense here... i mean
+given that things are so ideal the initial makx found will have to correspond
+to a particular peak in the sine wave... hm... although i mean the way this is
+working is is redefining it as more of a cosine wave... interesting...
+
+hmm... so that makes sense... i mean in these unvoiced sections lets see...
+given we have the extmrely ideal case of all zeros then the max function takes
+the first part element in the area being searched hmm... well given this is
+very unlikely to happen in the real world and we're dealing with noise then 
+it should be okay... not a whole lot has changed... hmm... lets see though...
+like developing something which is sufficiently robust in this regard is another
+task in and of itself i think... something i can write about in the report...
+
+hmm... so that's another problem to talk about... the difficulty in determining
+which fundamental freuqnecy estimate to use for overlapping frames... hmm... so
+i might be able to combine these to be more efficient... hmm... so lets see 
+here... i could plot the points as well... but it is nice to have this where
+you can control which polt is displayed without using break points...
+
+hmm... i mean i could add something here which sets a bounds on the lower 
+limit as well... did i not do that earlier? hmm... i eman this works... but
+lets see here... what else do i need to do for verification? it would be worth
+stepping through the other component/part to make sure that is functioning
+correctly...
+
+ahh... so in calculating the difference of all the element wise functions we
+get the issue where one of elements disappears... or the calculated pitch
+periods has one less element than the number of pitch marks... hmm... okay...
+so then lets see here... hmm... i mean knowing the min value would be extremely
+interesting/useful here... hmm... so i'm back to trying to fully understand
+what this is doing here... i mean it's compressing things... well in this case
+expanding things... it's modifying the pitch marks to occur on a different 
+time scale... on the time-scale which we want things to occur on... and from 
+there we find the pitch_mark from the original time scale and extract the
+waveform... or a grain from there... i mean that would be the essence of the
+waveform in a way... hmm... so lets see here... i mean by doing that we're
+attempting to keep the actual temporal evolution of the sound more accurate 
+or consistent... or preserve it as much as possible... and in a way we're taking
+a snapshot of the spectrum... somewhat similar to what we did with the phase
+vocoder... we grab 2 pitch periods worth of the signal... hmm... i mean lets
+see here... that should be sufficient to fundamentally represent the spectrum
+based on the F0 estimate... we have enough of the signal to what... hmm... to
+something... to accuractely know the spectrum as assuming we have a harmonic
+signal then we have at least two periods for each of the different harmonics...
+interesting...
+
+hmm... it would also be interesting to keep track of the indicies for the extracted
+waveforms so i can see what segments were discarded and which were repeated...
+hmm... so in this case the windowed segment is always the same... and hmm...
+i mean given that we're expanding the time scale here we can see that several
+of the different windowed segments are repeated...
+
+hmm... and looking at this output here we can see there's a phase discontinuity...
+hmm... and interesting... when things are added together here it looks as if
+things are consistent... or they add up correctly... well hmm... i mean that
+would make sense as well here as we're dealing with just time stretching...
+the pitch period isn't changing so the overlap will stay consistent and work
+out well... hmm... interesting... i mean seeing how this evolves over time for
+the pitch shifting would be interesting as well... but i'm becoming fairly 
+convinced that i have implemented this correctly and am fundamentally 
+understanding the algorithm from a better standpoint... lets complete the entire
+thing and check the phase at the output for any sort of discontinuties... hmm...
+so i do get a little blip or a phase discontinuity here... interesting... so
+then lets see here... i mean lets take a look at what happens when compressing
+the time scale... hmm... interesting... so with this method or by extracting
+this data we can actually determine which pitch marks (or time samples) were
+extracted for use at the different segments... well at the differently scaled
+pitch marks... hmm... interesting... although they would need to be modified
+somehow... or determining the exact value for interpretation needs to be consdiered
+or worked with... hmm... and here i can see that we're skipping indicies...
+i'll need to take a look at the output here... hmm... similar little distortion
+here... interesting... although here in the beginning we don't have the same
+issue... i'm not sure if it's worth tracking down why this is occuring... but
+i can always come back to this later...
+
+hmm... i mean here we're not changing the pitch period again so i would expect
+things to line up much more perfectly... it will be interesting to see the 
+changes to the waveform based on the pitch scaling aspect... hmm... so there
+is a larger question here... or lets see... i mean why are we getting rid of
+these end pieces...? well as they wouldn't be able to work for windowing...
+hmm... so lets see here... i mean hmm... yeah... we need full window's length
+of the signal for the OLA to work... although hmm... i mean how would that work
+necessarily speaking given they would be at the end points... although then
+it would be hard to get the window to be aligned correctly... you would need
+to generate a full window and then use only the length/section of the window
+which corresponded to the actual length of the segment of the signal... 
+hmm... i could also zero pad the signal at the beginning and end to make sure
+this wasn't an issue and we would get the fully length of the actual/original
+signal processed... but then if i was dealing with an actual implementation i
+would need to un-zero pad things at the end... that could get tricky depending
+on how the time scaling was applied, among other things...
+
+hmm... also.. what is the inherent limitation on the pitch scaling due to the
+integer valued accuracy required for the pitch marks? that's an interesting
+thing to explore... why would we expect to get nice integer value frequencies
+when we're dealing with tuning systems that rely on a ratio of the 12th root of
+2 (depending on your tuning system)...
+
+Hmm... so lets see here... what to do with this? i mean here since the fundamental
+frequency hasn't changed at all then we wouldn't expect the extracted segment
+to change at all... what would expect then? well we would expect the output
+signal from the OLA part to potentially be different... hmm... it would be 
+interesting to see the effects of the windows overlapped... hmm... although
+we have an odd number of windows here... hmm... i mean the same sort of thing
+keeps occuring here... interesting... so then lets run this whole thing and
+see what happens at the end points again...
+
+hmm... i mean we can see something similar here... although interesting...
+i should take a look at the lengths of the actual signals to see how close
+they are... hmm... i mean this is quite interesting...
+
+hmm... so how would i objective verify this anyways? well i mean there are
+two components... there's the time-stretching aspect... i mean that can be
+done by comparing the length of the before and after... hmm... interesting...
+
+then there's the actual pitch shifting aspect... that could be done by taking
+the output signal and running it through the YIN algorithm again to see how
+the fundamental frequency has changed... hmm... then there's also performing
+the FFT analyis... it might be easier to design a specialized test or a more
+idealized test to make things work as best as they could... or to make it as
+easy as possible to identify/verify the correctness of the algorithm...
+
+so what parameter ranges work for what sounds? that's a good question... i mean
+i'm definitely coming up on the limits of introducing different artifacts here..
+although i mean it might potentially work for something like Ministry or more
+for sounds which are "uglified"...
+
+maybe send some interesting examples to andrew and vince... hmm... lets take
+a look at the windowing aspect... hmm... i mean this is going to be hard to
+determine precisely as we're dealing with an odd number of samples regarding
+the length of the window so we couldn't really overlap it precisely... so how
+would we do this? i mean fundamentally what is dune in the algorithm? well the
+center of the next window would be at 101... or P0 + 1 samples...
+
+so then how to do this? zero pad it with P0 zeros... hmm... so adding in this
+extra sample helped align the windows properly so you get the overlap of 1...
+interesting... this is likely crucial to the algorithm... however... what about
+when i change the pitch period in the pitch shifting aspects? good question...
+
+hmm... so things combine differently here... interesting... i mean this could
+be explored in quite great detail to understand this better... but i understand
+the 2*P0 now for the overlap...
+
+*12/13/2021*
+Test to run:
+	- Sine wave verification test - YIN and FFT
+	- Flute verification test - YIN
+	- Voice verification test - YIN
+	
+Interesting... so with this pitch shift you get more distortions here... Makes
+sense as you're adjusting the pitch period but the constant property of the
+overlapping aspects of the windows isn't necessarily applied... interesting...
+and we do have some issues with the last frame here... oh well... time to run
+the sine wave verification test via the YIN...
+
+hmm... so this is bizarre... i wonder why this is occuring... i mean if i can't
+get it working for a sine wave then i surely can't get it working for more complex
+stimuli... it would be interesting to see the other results to see what they
+might tell us... Hmm... I mean technically I'm off by 2 Hz here... is this 
+necessarily due to the integer quantization asepcts regarding the limits of
+the shifting of the pitch period? I believe this could quite possible the the
+cause... Hmm... I would need to figure out how to proove it however... there
+is also the question of whether or not the YIN could work in this scenario...
+Althoguh I mean if I chose a different beta parameter (which fit much better
+with the method of pitch shifting) this could potentially be mitigated or the
+same issue wouldn't appear... Hmm... it would be good to calculate the error 
+here...
+
+hmm... so what would i then do with this error here? this is an error in the
+ratios... this is the difference between the specified ratio and the measured
+ratio... hmm... how would i necessarily interpet this? good question... what
+about the other one? would it make more sense to compare the errors based on
+the difference between the specified frequencies and ratios? perhaps i could
+plot them both to see what they tell me... would be interesting... hmm... i
+mean this isn't what i want here... hmm... lets see... i mean the difference
+between the output signals is slightly different... hmm... interesting... so
+then lets see here... i mean ultimately i wouldn't want this... i would want
+the difference between the input frequency multiplied by the ratio and the output
+frequency... although i would then need to modify this for the more complex
+stimuli as this is something which would change on a frame by frame basis...
+well i would need to take the original f0 and multiply it by beta and then subtract
+that from the output f0...
+
+hmm... i mean the error is much smaller here... hmm... lets see what to do?
+i mean how could i necessarily predict the error here? that's a good question...
+i know the starting frequency... i know what the resulting frequency should be
+i can figure out what the resulting pitch period should be and then determine
+how many samples that is and what the resulting change in time causes in terms
+of the fundamental frequency... this would be quite interesting... so how many
+samples is this? multiply it by the sampling frequency to determine things 
+here...
+
+well lets see here... i mean the measured fundamental frequency has a pitch 
+period which is an integer number of samples as we would expect... we are also
+two samples over here... hmm... i mean this likely comes from the imprecision
+in the rounding which i performed during algorithm development... hmm... it would
+be quite interesting to take a look into this much more closely... perhaps i
+should run the other checks? hmm... well i'm not sure if i'm done here unfortunately...
+hmm... what else could this explain? i mean ultimately the numbers would need
+to add up in terms of explaining the error in the ratio difference as well...
+
+hmm... so lets see here... how would i translate this into predicting the error
+in the ratio... well lets take a nice little look here... hmm.... however i still
+need to look into the time-stretching error as well... ahh... well i would take
+the beta and divide it or form a ratio i believe... hmm... how to relate this
+to the pitch period so i could use this to determine the error? well i have
+the pitch periods in samples here... hmm.. i could potentially do something with
+that i believe...
+
+hmm... i had made a rounding error but the math still works on the same here...
+interesting... i mean the rounding error explains why we don't get the exact
+ratio... hmm... so then any sort of vocal aspect or more complex stimuli wouldn't
+be exact either... although it might be interesting to see what happens to confirm
+or disconfirm this... but i mean with the fundamental unit of discretization of
+a sample this poses issues in terms of what the different frequencies you can
+represent are... and this is precisely what happened here I believe... hmm...
+i mean if i go into the code I would expect to find 67 as the pitch period...
+
+or hmm... where would this value of 67 manifest itself in the code...? that's
+a good question here... perhaps in the extracted indices? or the pitch marks
+referring to them? or more the output pitchmarks... i would expect that to move
+by an amount of 67 samples... yes... and that is where this comes up here...
+and it always gets rounded...
+
+hmm... quite interesting here... i mean it comes out exactly as i had predicted...
+this is a very nice/satisfying feeling to have... but in terms of objective 
+verification this would make it seem like running the other tests are bound
+to have some sort of an error and not necessarily be worth time time... quite
+interesting... not sure if it's really worth it at the moment... might be more
+worth investigating the limits of the time stretching algorithm... i can take
+a quick break and take leak and then figure out a good way to determine if the
+time stretching is working or not...
+
+hmm... so how to test if this is working from the standpoint of time stretching?
+i mean that's a good question... ultimately what we want is for the same acoustic
+events to occur but on a different time-scale... so what does that mean? hmm...
+
+so lets see here... how would I test this? I mean ultimately we would need to
+define a series of acoustic events in time to be able to estimate this... hmm...
+so lets see here... i mean hmm... so one way to examine this would be to look
+at where the start of the sine wave occurs as well as where the end of the
+sinewave occurs... and this would just be in terms of time-stretching... i mean
+that would be easier to define more objectively as compared to working with 
+actual sounds which gets more into the realm of subjectivity... although understanding
+the technical definitions in those regards would be something interesting to
+explore...
+
+hmm... so i mean it would be interesting to see if using a parameter of beta = 1
+generates no error... hmm... i mean i'll need to explore this more carefully
+later... understanding the time domain aspects... ehh.. i mean it is extremely
+small here... i wonder why things occur differently... hmm... seems like it might
+more be a plotting issue than anything else... i can come back and explore this
+later...
+
+hmm... so i mean lets see here... ultimately the entire signal will be scaled
+by the amount we specify as i use that value to generate the buffer to store
+the new data... hmm... or the processed data... interesting... so lets see here...
+i mean ultimately we would expect the beginning silence to be shorted appropraitely
+as well as the start and end of the sinewave to occur at the different points...
+as well as the ending silence to be scaled appropriately... so i mean there are
+two aspects... or are they the same thing? i believe they are the same thing...
+if the durations of the "events" are scaled appropriately then the sample values
+where they occur at will be correct in terms of the scaling... lets plug it in
+and see what happens here...
+
+hmm... i mean that's an interesting point... we couldn't necessarily test both
+at the same time as the lengths of the arrays wouldn't align properly... hmm...
+interesting...
+
+interesting... so i mean lets see here... the first check is the number of samples...
+so those check out the same... lets see if the "events" were scaled appropraitely...
+
+i mean so the blips/phase issues at the end are still here... this also indicates
+an implementation issue with my algorithm... interesting... i'll need to take
+a closer look at how to mitigate this... so lets take a look at the end here...
+
+so lets see here... what is the difference between what is predicted and what
+occurs? good question...
+
+hmm... so what is going on here... why is the first silence as well as the
+duration of the tone off by 25 samples (approx) but the last silence isn't...
+that's a good question... is this inherently due to the algorithm? quite possibly...
+lets see here... i mean this is also approximately one quarter of a pitch
+period... perhaps a conicidence or perhaps not... hmm... i wonder where this
+comes from... i might need to step through this line by line in order to figure
+things out here... it will be an interesting exploration into what's going on
+here... although lunch time is starting to come up soon... however i don't recall
+there being a lot available for lunch... hmm... interesting...
+
+hmm... so lets see here... what to do... i should experiment with some different
+sounds more creatively and then try and track down this issue of the missing
+half a period... as well as just put a sine wave through it...
+
+well it's time to think of some more interesting examples... so lets see here...
+i mean i could generate different harmonies starting from one sample... i did
+enjoy doing that with the flute... it would be interesting to hear how the
+flute compares to the clarinet which has a more constant fundamental frequency...
+
+hmm... i mean that would be an interesting thing to consider... does this mixed
+waveform now have the same fundamental frequency? well it would depend on the
+different relationships of the shifted pitches and everything... i'm not sure
+i have the energy to figure this all out at the moment...
+
+hmm... i mean the harmonies are kind of interesting... depending on the source
+material you get some interesting sounds... hmm... how would i push things more
+to the limits here... i mean so far i'm just scaling it up... what about scaling
+it down? i mean that doesn't sound too bad... the clarinet has the most pure
+tone... or the least variable fundamental frequency... it seems these other ones
+are hmm... it becomes more apparent that a harmonizer is at play with them...
+it seems a bit like hmm... there's an unnaturalness whic becomes more apparent...
+but how would i test the limits of the shifting... putting it too high would
+make things sound pretty horrible as the different parts would start to overlap
+in a very uncontrolled and destructive manner...
+
+although mixed together there's a bit of masking going on... hmm... interesting...
+i mean that's kind of interesting... it sounds as if she's been smoking for 
+several years now... kind of cool and interesting effect... i wonder why it
+occurs perceptually... i can explore that more when i figure things out later
+in terms of writing up the report...
+
+hmm... although i mean how does this work? in the case of this one we're not
+necessarily inserting zeros or causing overlaps between parts... we're either
+discarding or keeping particular segments... in the case of stretching we repeate
+different aspects of the original time-domain signal interesting... and i mean
+you can hear that as well... ultimately with the two different functions you
+run into two different questions... hmm... quite fascinating... i'lll have to
+think about this more...
+
+the flute sounds really interesting with preserving the vibration... it would 
+be interesting to explore more percussion based sounds/instruments...
+
+hmm... i mean the simpler the stimuli the more i can stretch things here...
+i mean it more have more to do with transients and other aspects... but that's
+quite fascinating... or parts regarding things like hmm... well i mean it would
+boild down a lot fo waht we're capable of extracting during that time segment
+and how the sound evolves over that time... hmm... i mean that would be quite
+interesting to explore more thoroughly...
+
+hmm... wow... i mean there's a lot of different things you can do with this...
+it would definitely be interesting to get some other ideas/sources of inspiration
+from other people...
+
+also, what's going on with this part? i mean we're both time-stretching the 
+signal as well as pitch shifting it... so we would be repeating different segments
+at different times based on the time-scaling parameter as well as changing the
+spacing of the windowed segments based on the pitch shifting parameter... that
+would be interesting to explore more in depth... i think i have enough to work
+with for now and to put together for a presentation...
+
+*12/14/2021*
+Hmm... okay... so lets see here... lets track down that 1/4 pitch period issue
+for the sine wave test...
+
+so could it be due to the silence here? i mean this does end up having the
+pitch mark shifted back 25 samples... what would that equate to however? well
+hmm... i mean based on what we see here it looks as if that might be the culprit...
+could this explain things? hmm... it also misses a frame here... however...
+how will this shorten things? i mean in terms of the pitch marks what is going
+on here? it looks as if this chunk of time just won't have a pitch period
+associated with it... hmm... well the way i would be able to determine this is
+to look at what pitch marks have been extracted... i'd need to save this figure...
+
+hmm... well i missed my opportunity here... i'm not sure what exactly would cause
+this issue... yeah, i can talk about it in the presentation but not necessarily
+track down and root cause it as i don't have the time...
+
+so how do i do this? i mean first i need to describe the algorithm to explain
+what it does... hmm... i mean i can always trim things later... so what is 
+the idea here? i mean the idea here is to find the closest segments from the original
+signal which match the new time scale to ensure the acoustic events remainly
+consistent in their relative order
+
+some segments get repeated and some get discarded... hmm... okay here... so 
+then lets see what's next... i mean i've covered the basics of how the algorithm
+is implemented... but what are some of the issues i need to talk about... good
+thing i wrote about them while they came up... although it's somewhat time to
+take a leak at the moment...
+
+hmm... so then what to do next? i mean going through the different verification
+tests would be good as that shows some of the limitations of things as well as
+where there is room for improvement... then some of the audible tests would be
+interesting... although now i need to take another leak...
+
+hmm... so lets see what to do here... i can get into the perceptual tests now and fill in some of the blanks from before...
+hmm... i mean i don't need to go into the other issues as much... i feel like i'm covering what is necessary based on the description for the presentation... it
+would be good to add some perceptual tests as well as explain the limitations and other aspects based on the pitch shifting and time scaling...
+
+so what would the lower limit on the time stretching be... this would be based in new artifacts introduced through repeititon I believe... hmm... so it might be nice
+to have something showing how the windows work with the pitch period... hmm... how to play these files... might be easier to do in audacity...
+
+hmm... so that first one was a bit rough... i should probably change the slide where the windowing concept is introduced...
+hmm... okay... so i can gloss over more of the details i think and i should be able to cut this down a bit... hmm... okay... i'm only 2 minutes over... that's not too
+bad... i can skimp on some of the details during the presentation... and i'm fairly confident in this now... I'll just need to put the report together...

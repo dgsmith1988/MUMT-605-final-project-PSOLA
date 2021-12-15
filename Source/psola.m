@@ -20,6 +20,8 @@ end
 if pitch_marks(end) + P0(end) > length(x)
     pitch_marks = pitch_marks(1:end-1);
 else
+    %duplicate the last pitch mark to compensate for the "missing" element
+    %generated from the diff() operation
     P0 = [P0, P0(end)];
 end
 
@@ -31,9 +33,15 @@ y = zeros(round(alpha*length(x)), 1);
 %windowed segment.
 output_pitch_mark = P0(1) + 1;
 
+%keep track of these so you know which were repeated and which were
+%discarded
+extracted_indicies = [];
+
 %now that everything is initialized we can start the main processing loop
 while output_pitch_mark < length(y)
-    [~, i] = min(abs(alpha*pitch_marks - output_pitch_mark));
+    [min_val, i] = min(abs(alpha*pitch_marks - output_pitch_mark));
+%     [~, i] = min(abs(alpha*pitch_marks - output_pitch_mark));
+    extracted_indicies = [extracted_indicies, i];
     local_P0 = P0(i);
     
     %use an odd number here to ensure the pitch mark is centered in the

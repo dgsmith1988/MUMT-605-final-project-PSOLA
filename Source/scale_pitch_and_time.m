@@ -14,13 +14,14 @@ if show_plots
     figure;
     subplot(2, 1, 1);
     plot((1:length(x))/Fs, x);
-    xlim([0 3.5])
+    upper_lim = ceil(length(x)/Fs * 10 + 5) / 10;
+    xlim([0 upper_lim])
     title('Original x[n]');
     subplot(2, 1, 2);
     time_axis = (1:length(yin_output.f0)) * yin_output.hop * (1/Fs);
     plot(time_axis, yin_output.f0);
     title("YIN Output");
-    xlim([0 3.5]);
+    xlim([0 upper_lim]);
 end
 
 %Due to how the YIN algorithm implements things we need to set the NaN
@@ -30,7 +31,7 @@ F0_est((isnan(F0_est))) = 0;
 
 %Now that we have the fundamental frequency estimates we can determine the
 %pitch marks
-pitch_marks = get_pitch_marks(x, Fs, F0_est, yin_output.hop, yin_output.wsize);
+pitch_marks = get_pitch_marks(x, Fs, F0_est, yin_output.hop, yin_output.wsize, show_plots);
 if show_plots
     %plot the pitch marks on top of the signal first so we can check things
     figure;
